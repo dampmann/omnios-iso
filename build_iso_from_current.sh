@@ -16,8 +16,8 @@ echo "Installing rmformat"
 pkg install service/storage/media-volume-manager
 echo "Installing cdrtools"
 pkg install media/cdrtools
-if [ -f /zfs_root.bz2 ]; then
-    echo "zfs_root.bz2 exists."
+if [ -f /root.zfs.bz2 ]; then
+    echo "root.zfs.bz2 exists."
     echo -n "Want to keep and use it (y/n)? "
     read response
     if [ $response == "n" ]; then
@@ -25,11 +25,11 @@ if [ -f /zfs_root.bz2 ]; then
         echo -n "Please type a snapshot name: "
         read snap
         zfs snapshot rpool/ROOT/omnios@${snap}
-        zfs send rpool/ROOT/omnios@${snap} | bzip2 -9 > /zfs_root.bz2 
+        zfs send rpool/ROOT/omnios@${snap} | bzip2 -9 > /root.zfs.bz2 
     fi
 else
     zfs snapshot rpool/ROOT/omnios@template
-    zfs send rpool/ROOT/omnios@template | bzip2 -9 > /zfs_root.bz2 
+    zfs send rpool/ROOT/omnios@template | bzip2 -9 > /root.zfs.bz2 
 fi
 cdrom=$(rmformat | grep "/dev/rdsk" | awk '{print $4}' | sed 's#rdsk#dsk#')
 echo "Creating /media/cdrom"
@@ -63,29 +63,9 @@ echo "mounted new file system on /miniroot"
 cd /minirootold
 find . -print -depth | egrep -v kayak_r151023.zfs.bz2 | cpio -pdmu /miniroot
 echo "Copied over the old miniroot to new miniroot"
-cat > /root/rpool-install.sh.patch <<EOF
---- rpool-install.sh    Mon May 15 17:45:49 2017
-+++ rpool-install.sh.new        Fri Mar  9 15:47:02 2018
-@@ -14,9 +14,11 @@
- #
- # Copyright 2017 OmniTI Computer Consulting, Inc. All rights reserved.
- #
--
-+mkdir -p /media/cdrom
-+cdrom=$(/usr/bin/rmformat | /usr/bin/grep "/dev/rdsk" | /usr/bin/awk '{print $4}' | /usr/bin/sed 's#rdsk#dsk#')
-+/usr/sbin/mount -F hsfs $cdrom /media/cdrom
- RPOOL=${1:-rpool}
--ZFS_IMAGE=/root/*.zfs.bz2
-+ZFS_IMAGE=/media/cdrom/*.bz2
- keyboard_layout=${2:-US-English}
- 
- zpool list $RPOOL >& /dev/null
-EOF
-echo "Patched rpool-install.sh in /iso/kayak"
-cp /root/rpool-install.sh.patch /iso/kayak/
-cd /iso/kayak
-patch < rpool-install.sh.patch
-rm -f rpool-install.sh.patch
+printf '/kayak-menu/\ni\n\tmkdir -p /media/cdrom\n\tcdrom=$(/usr/bin/rmformat | /usr/bin/grep "/dev/rdsk" | /usr/bin/awk "{print $4}" | /usr/bin/sed "s#rdsk#dsk#")\n\t/usr/sbin/mount -F hsfs $cdrom /media/cdrom\n\tln -s /media/cdrom/root.zfs.bz2 /root/root.zfs.bz2\n.\n\nw\nq\n' | ed /miniroot/.initialboot
+printf '/kayak-menu/\ni\n\tmkdir -p /media/cdrom\n\tcdrom=$(/usr/bin/rmformat | /usr/bin/grep "/dev/rdsk" | /usr/bin/awk "{print $4}" | /usr/bin/sed "s#rdsk#dsk#")\n\t/usr/sbin/mount -F hsfs $cdrom /media/cdrom\n\tln -s /media/cdrom/root.zfs.bz2 /root/root.zfs.bz2\n.\n\nw\nq\n' | ed /iso/.initialboot
+echo "Patched .initialboot in /miniroot and /iso"
 cd /miniroot
 #find /miniroot -type d -print | sed -e 's;[^/]*/;|____;g;s;____|; |;g'
 cp `which rmformat` usr/bin/
@@ -98,9 +78,10 @@ do
 		cp $i $j 
 	fi 
 done
+cp -rf /usr/lib/smedia /miniroot/usr/lib
 echo "Copied rmformat to miniroot and resolved dependencies."
-echo "Copying /zfs_root.bz2 to /iso"
-cp /zfs_root.bz2 /iso
+echo "Copying /root.zfs.bz2 to /iso"
+cp /root.zfs.bz2 /iso
 echo "Cleaning up"
 cd /
 umount /miniroot
@@ -113,5 +94,5 @@ umount /minirootold
 lofiadm -d /dev/lofi/1
 echo "Creating iso"
 mkisofs -o omni_new.iso -b boot/cdboot -c .catalog -no-emul-boot -boot-load-size 4 -boot-info-table -N -l -R -U -allow-multidot -no-iso-translate -cache-inodes -d -D -V OmniOS /iso
-
+rm -rf /miniroot /minirootold /iso /tmp/boot_archive
 echo "done"
