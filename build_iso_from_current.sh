@@ -62,9 +62,11 @@ mount /dev/lofi/2 /miniroot
 echo "mounted new file system on /miniroot"
 cd /minirootold
 find . -print -depth | egrep -v kayak_r151023.zfs.bz2 | cpio -pdmu /miniroot
+cp -f /usr/bin/locale /miniroot/usr/bin
+cp -f /usr/bin/tzselect /miniroot/usr/bin
 echo "Copied over the old miniroot to new miniroot"
-printf '/kayak-menu/\ni\n\tmkdir -p /media/cdrom\n\tcdrom=$(/usr/bin/rmformat | /usr/bin/grep "/dev/rdsk" | /usr/bin/awk "{print $4}" | /usr/bin/sed "s#rdsk#dsk#")\n\t/usr/sbin/mount -F hsfs $cdrom /media/cdrom\n\tln -s /media/cdrom/root.zfs.bz2 /root/root.zfs.bz2\n.\n\nw\nq\n' | ed /miniroot/.initialboot
-printf '/kayak-menu/\ni\n\tmkdir -p /media/cdrom\n\tcdrom=$(/usr/bin/rmformat | /usr/bin/grep "/dev/rdsk" | /usr/bin/awk "{print $4}" | /usr/bin/sed "s#rdsk#dsk#")\n\t/usr/sbin/mount -F hsfs $cdrom /media/cdrom\n\tln -s /media/cdrom/root.zfs.bz2 /root/root.zfs.bz2\n.\n\nw\nq\n' | ed /iso/.initialboot
+printf '/kayak-menu/\ni\n\tmkdir -p /media/cdrom\n\tcdrom=$(/usr/bin/rmformat | /usr/bin/grep "/dev/rdsk" | /usr/bin/awk "{print \$4}" | /usr/bin/sed "s#rdsk#dsk#")\n\t/usr/sbin/mount -F hsfs $cdrom /media/cdrom\n\tln -s /media/cdrom/root.zfs.bz2 /root/root.zfs.bz2\n.\n\nw\nq\n' | ed /miniroot/.initialboot
+printf '/kayak-menu/\ni\n\tmkdir -p /media/cdrom\n\tcdrom=$(/usr/bin/rmformat | /usr/bin/grep "/dev/rdsk" | /usr/bin/awk "{print \$4}" | /usr/bin/sed "s#rdsk#dsk#")\n\t/usr/sbin/mount -F hsfs $cdrom /media/cdrom\n\tln -s /media/cdrom/root.zfs.bz2 /root/root.zfs.bz2\n.\n\nw\nq\n' | ed /iso/.initialboot
 echo "Patched .initialboot in /miniroot and /iso"
 cd /miniroot
 #find /miniroot -type d -print | sed -e 's;[^/]*/;|____;g;s;____|; |;g'
